@@ -1,0 +1,131 @@
+!pip install python-sat   
+
+------------------------------------------------------------------------------------------------
+
+from google.colab import drive
+drive.mount('/content/drive')
+!ls ./drive/My\ Drive
+
+------------------------------------------------------------------------------------------------
+
+from pysat.solvers import Glucose3
+import time
+import numpy as np
+
+
+def colorToCnf(n, m, matrix, colors):
+  #Начало алгоритма
+  for k in range(1, colors):
+    g = Glucose3()
+  
+    #для каждой вершины делаю скобу из k переменных
+    #отвечает за то что каждая переменная покрашена хотя бы в один цвет
+    for iter1 in range(n):
+      v = []
+      vertex = iter1 * k
+      for iter2 in range(k):
+        vertex += 1
+        v.append(vertex)
+      g.add_clause(v)
+    
+    #скобки из дизъюнкций двух отрицаний
+    #для каждой переменной проверяем, что она покрашена ровно в один цвет(переменные для одной вершины разных цветов)
+    for iter3 in range(n):
+      e1 = iter3 * k
+      for iter4 in range(k - 1):
+        e1 += 1
+        e2 = e1 + 1
+        for iter5 in range(iter4 + 1, k):
+          g.add_clause([-e1, -e2])
+          e2 += 1
+    
+    #проверка того что соединёные ребром вершины не одного цвета
+    for i in range(n):
+      for j in range(i, n):
+        if matrix[i][j] == 1 and i != j:
+          second = j * k
+          first = i * k
+          for iter6 in range(k):
+            first += 1
+            second += 1
+            g.add_clause([-first, -second])
+          
+    if g.solve() == True:
+      #print("this graph is", k, "colored")
+      #print(g.get_model())
+      #print(k)
+      counter = 1
+      vertex = 0
+      answer = list()
+      
+      for i in g.get_model():
+        if i > 0:
+          vertex += 1
+          #print("color of ", vertex, "is-", counter)
+          #print(counter, end =" ")
+          answer.append(counter)
+        if counter == k:
+          counter = 0
+        counter += 1
+      s = ""
+      f2.write('%s' % k)
+      f2.write("\n")
+      for i in answer:
+        s += " "
+        s += '%s' % i
+      f2.write(s)
+      f2.close()
+      break
+      
+---------------------------------------------------------------------------
+
+f = open('/content/drive/My Drive/pythonClass/08.in')
+f2 = open('/content/drive/My Drive/pythonClass/08.out', 'w')
+
+
+#считываем данные в матрицу
+n, m = [int(x) for x in next(f).split()]
+matrix = [[0] * n for i in range(n)]
+for line in f:
+  a, b = [int(x) for x in line.split()]
+  matrix[a-1][b-1] = 1
+  matrix[b-1][a-1] = 1
+f.close()
+
+colorToCnf(n, m, matrix, 6)
+
+-----------------------------------------------------------------------------
+
+import numpy as np
+
+mass = []
+b = 45
+#Тестирование и замер времени на рандомно сгенерированных графах
+for i in range(5000):
+  n = 10
+  a = 0
+  print("---------------GRAPH", i, "--------------------")
+  matrix1 = np.random.randint(0, 1 + 1, (n, n))
+  start_time = time.time()
+  for i in range(n):
+    for j in range(i, n):
+      if matrix1[i][j] == 1 and i != j:
+        a += 1
+  colorToCnf(n, n, matrix1, n+1)
+  print()
+  res = time.time() - start_time
+  print("--- %s seconds ---" % (time.time() - start_time))
+  mass.append([a/b, res])
+  
+print(mass)
+
+--------------------------------------------------------------
+
+from matplotlib import pyplot as plt
+
+
+array = np.array(mass)
+x, y = array.T
+plt.scatter(x,y)
+
+----------------------------------------------------------------------
